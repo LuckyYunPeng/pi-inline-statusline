@@ -1,8 +1,8 @@
-# pi-statusline
+# pi-inline-statusline
 
-Private fork of [`@narumitw/pi-statusline`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-statusline), a native [Pi coding agent](https://pi.dev) extension that replaces Pi's footer with an information-rich terminal statusline.
+A community-maintained, single-line-focused fork of [`@narumitw/pi-statusline`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-statusline), a native [Pi coding agent](https://pi.dev) extension that replaces Pi's footer with an information-rich terminal statusline.
 
-The repository preserves the upstream package history and MIT license. Local changes are maintained in [`LuckyYunPeng/pi-statusline`](https://github.com/LuckyYunPeng/pi-statusline).
+The repository preserves the upstream package history and MIT license. This fork is independently maintained at [`LuckyYunPeng/pi-inline-statusline`](https://github.com/LuckyYunPeng/pi-inline-statusline).
 
 Use it to monitor model selection, thinking level, git branch, working directory, active tools, context usage, token totals, estimated cost, time, and statuses from other Pi extensions.
 
@@ -14,15 +14,21 @@ Use it to monitor model selection, thinking level, git branch, working directory
 - Owns extension status icons through optional JSON config, including per-extension icon suppression with `""`.
 - Warns when the same extension package is installed from multiple sources.
 - Uses emoji-labeled segments for readability in both classic and Tokyo Night presets.
-- Adapts to terminal width and wraps long extension status lines safely.
+- Targets a strictly single-line footer with width-aware status prioritization.
 - Requires no configuration, with optional preset selection through `PI_STATUSLINE_PRESET`.
 
 ## 📦 Install
 
-Install from the private Git repository using SSH:
+Install from npm after the first public release:
 
 ```bash
-pi install git:git@github.com:LuckyYunPeng/pi-statusline.git
+pi install npm:pi-inline-statusline
+```
+
+Install the current development version from GitHub:
+
+```bash
+pi install git:github.com/LuckyYunPeng/pi-inline-statusline
 ```
 
 Try this package locally from the repository root:
@@ -33,7 +39,7 @@ pi -e .
 
 ## 🎨 Presets
 
-`pi-statusline` supports presets through the `PI_STATUSLINE_PRESET` environment variable:
+`pi-inline-statusline` supports presets through the `PI_STATUSLINE_PRESET` environment variable:
 
 ```bash
 PI_STATUSLINE_PRESET=tokyo-night pi
@@ -96,9 +102,9 @@ The default `tokyo-night` statusline uses a Starship-inspired `░▒▓` / `
 
 Git status tokens are hidden for clean repositories. When present, they mean `⇡` ahead, `⇣` behind, `+` staged, `~` modified/deleted in the worktree, `?` untracked, and `!` conflicts. Example: `🌿 main ⇡1 +2 ~1 ?3`.
 
-Statuses from other extensions appear below the main statusline, use each preset's separator, and wrap onto additional footer lines when they exceed the terminal width.
+The inline rendering policy is under active development and will be completed before the first npm release. The current development baseline still preserves upstream extension-status wrapping behavior.
 
-`pi-statusline` is extension-agnostic: it consumes Pi's generic extension status API and does not import or depend on status-producing extensions.
+`pi-inline-statusline` is extension-agnostic: it consumes Pi's generic extension status API and does not import or depend on status-producing extensions.
 
 Examples:
 
@@ -121,7 +127,7 @@ Examples:
 ## 🗂️ Package layout
 
 ```txt
-pi-statusline/
+pi-inline-statusline/
 ├── src/
 │   ├── statusline.ts  # Pi entrypoint and watcher lifecycle
 │   └── *.ts           # Package-local git, extension status, settings, and render modules
@@ -148,7 +154,7 @@ Only `statusline.ts` is a Pi entrypoint; the other source modules are internal. 
 
 ## 🔎 Keywords
 
-Pi extension, Pi coding agent, statusline, terminal UI, AI coding agent status, token usage, context window, model status, TypeScript Pi package.
+Pi extension, Pi coding agent, inline statusline, single-line footer, terminal UI, AI coding agent status, token usage, context window, model status, TypeScript Pi package.
 
 ## 📄 License
 

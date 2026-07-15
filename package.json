@@ -1,15 +1,17 @@
 {
-	"name": "@luckyyunpeng/pi-statusline",
-	"version": "0.15.1",
-	"description": "Private fork of the Pi statusline extension.",
+	"name": "pi-inline-statusline",
+	"version": "0.16.0-beta.1",
+	"description": "A single-line statusline extension for the Pi coding agent.",
 	"type": "module",
 	"license": "MIT",
-	"private": true,
+	"private": false,
 	"keywords": [
 		"pi-package",
 		"pi-extension",
 		"pi",
 		"statusline",
+		"inline",
+		"single-line",
 		"footer"
 	],
 	"files": [
@@ -43,6 +45,13 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+ssh://git@github.com/LuckyYunPeng/pi-statusline.git"
+		"url": "git+https://github.com/LuckyYunPeng/pi-inline-statusline.git"
+	},
+	"bugs": {
+		"url": "https://github.com/LuckyYunPeng/pi-inline-statusline/issues"
+	},
+	"homepage": "https://github.com/LuckyYunPeng/pi-inline-statusline#readme",
+	"publishConfig": {
+		"access": "public"
 	}
 }
