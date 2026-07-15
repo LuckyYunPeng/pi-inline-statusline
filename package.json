@@ -18,6 +18,7 @@
 		"src",
 		"presets",
 		"README.md",
+		"README.zh-CN.md",
 		"LICENSE"
 	],
 	"pi": {

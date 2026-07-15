@@ -1,5 +1,7 @@
 # pi-inline-statusline
 
+**English** | [简体中文](./README.zh-CN.md)
+
 A responsive statusline for the [Pi coding agent](https://pi.dev) that keeps everything on one line when space allows and wraps by complete segments when it does not.
 
 No half-visible segments. No silently dropped context, token, cost, or extension status. Each item moves as a whole to the next line, preserving both readability and information.
@@ -163,6 +165,7 @@ pi-inline-statusline/
 │   ├── tokyo-night.ts
 │   └── types.ts
 ├── README.md
+├── README.zh-CN.md
 ├── LICENSE
 ├── tsconfig.json
 └── package.json
