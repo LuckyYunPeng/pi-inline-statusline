@@ -5,16 +5,8 @@ import {
 	findDuplicateExtensions,
 	readInstalledExtensionPackages,
 } from "./extension-status.js";
-import {
-	gitStatusSummaryEqual,
-	readGitStatus,
-	type GitStatusSummary,
-} from "./git-status.js";
-import {
-	renderExtensionStatusline,
-	renderStatusline,
-	type RuntimeState,
-} from "./render.js";
+import { type GitStatusSummary, gitStatusSummaryEqual, readGitStatus } from "./git-status.js";
+import { type RuntimeState, renderExtensionStatusline, renderStatusline } from "./render.js";
 import { consumeStatuslineSettingsNotice, createDefaultConfig } from "./settings.js";
 
 const STATUSLINE_KEY = "statusline";
@@ -38,9 +30,7 @@ export default function statusline(pi: ExtensionAPI) {
 	let activeGitStatusTarget: { cwd: string; generation: number } | undefined;
 	let gitStatusRefreshInFlight = false;
 	let gitStatusDebounceTimer: ReturnType<typeof setTimeout> | undefined;
-	let pendingGitStatusRefresh:
-		| { cwd: string; generation: number; requestId: number }
-		| undefined;
+	let pendingGitStatusRefresh: { cwd: string; generation: number; requestId: number } | undefined;
 
 	const refresh = () => runtime.requestRender?.();
 
@@ -247,8 +237,8 @@ export {
 export {
 	formatGitBranchText,
 	formatGitStatusSummary,
-	parseGitStatusPorcelain,
 	type GitStatusSummary,
+	parseGitStatusPorcelain,
 } from "./git-status.js";
 export {
 	contextColor,

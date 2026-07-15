@@ -1,10 +1,10 @@
 {
-	"name": "@narumitw/pi-statusline",
+	"name": "@luckyyunpeng/pi-statusline",
 	"version": "0.15.1",
-	"description": "Pi extension that replaces the footer with an information-rich statusline.",
+	"description": "Private fork of the Pi statusline extension.",
 	"type": "module",
 	"license": "MIT",
-	"private": false,
+	"private": true,
 	"keywords": [
 		"pi-package",
 		"pi-extension",
@@ -24,20 +24,25 @@
 		]
 	},
 	"scripts": {
-		"check": "biome check . && npm run typecheck",
+		"check": "biome check . && npm run typecheck && npm test",
 		"format": "biome check --write .",
+		"test": "node --import tsx --test test/statusline.test.ts",
 		"typecheck": "tsc --noEmit"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*",
+		"@earendil-works/pi-tui": "*"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.3",
 		"@earendil-works/pi-coding-agent": "0.80.3",
 		"@earendil-works/pi-tui": "0.80.3",
 		"@types/node": "26.1.1",
+		"tsx": "4.20.6",
 		"typescript": "6.0.3"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/narumiruna/pi-extensions",
-		"directory": "extensions/pi-statusline"
+		"url": "git+ssh://git@github.com/LuckyYunPeng/pi-statusline.git"
 	}
 }

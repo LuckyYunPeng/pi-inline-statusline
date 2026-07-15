@@ -1,8 +1,8 @@
-# ✨ pi-statusline — Rich Statusline for the Pi Coding Agent
+# pi-statusline
 
-[![npm](https://img.shields.io/npm/v/@narumitw/pi-statusline)](https://www.npmjs.com/package/@narumitw/pi-statusline) [![Pi extension](https://img.shields.io/badge/Pi-extension-blue)](https://pi.dev) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+Private fork of [`@narumitw/pi-statusline`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-statusline), a native [Pi coding agent](https://pi.dev) extension that replaces Pi's footer with an information-rich terminal statusline.
 
-`@narumitw/pi-statusline` is a native [Pi coding agent](https://pi.dev) extension that replaces Pi's footer with a beautiful, information-rich terminal statusline.
+The repository preserves the upstream package history and MIT license. Local changes are maintained in [`LuckyYunPeng/pi-statusline`](https://github.com/LuckyYunPeng/pi-statusline).
 
 Use it to monitor model selection, thinking level, git branch, working directory, active tools, context usage, token totals, estimated cost, time, and statuses from other Pi extensions.
 
@@ -19,20 +19,16 @@ Use it to monitor model selection, thinking level, git branch, working directory
 
 ## 📦 Install
 
-```bash
-pi install npm:@narumitw/pi-statusline
-```
-
-Try without installing permanently:
+Install from the private Git repository using SSH:
 
 ```bash
-pi -e npm:@narumitw/pi-statusline
+pi install git:git@github.com:LuckyYunPeng/pi-statusline.git
 ```
 
 Try this package locally from the repository root:
 
 ```bash
-pi -e ./extensions/pi-statusline
+pi -e .
 ```
 
 ## 🎨 Presets
@@ -125,7 +121,7 @@ Examples:
 ## 🗂️ Package layout
 
 ```txt
-extensions/pi-statusline/
+pi-statusline/
 ├── src/
 │   ├── statusline.ts  # Pi entrypoint and watcher lifecycle
 │   └── *.ts           # Package-local git, extension status, settings, and render modules

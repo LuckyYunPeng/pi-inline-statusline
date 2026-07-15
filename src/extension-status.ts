@@ -70,7 +70,12 @@ export function formatExtensionStatus(
 	const text = simplifyExtensionStatusText(status.text);
 	const color = extensionColor(key, value);
 	const textColor = color === "warning" ? "warning" : "muted";
-	const icon = extensionStatusIcon(key, status.icon, config.extensionStatusIcons, extensionStatusIconAliases);
+	const icon = extensionStatusIcon(
+		key,
+		status.icon,
+		config.extensionStatusIcons,
+		extensionStatusIconAliases,
+	);
 	const renderedText = theme.fg(textColor, text);
 	return icon ? `${theme.fg(color, icon)} ${renderedText}` : renderedText;
 }
@@ -187,7 +192,9 @@ function extensionSettingsFiles(cwd: string): string[] {
 	].filter((file) => existsSync(file));
 }
 
-export function findDuplicateExtensions(installedPackages: readonly InstalledExtensionPackage[]): string[] {
+export function findDuplicateExtensions(
+	installedPackages: readonly InstalledExtensionPackage[],
+): string[] {
 	const sourcesByPackage = new Map<string, Set<string>>();
 
 	for (const extensionPackage of installedPackages) {
@@ -207,17 +214,25 @@ export function buildExtensionStatusIconAliases(
 	const packageAliasesByStatusBase = new Map<string, Map<string, string[]>>();
 
 	for (const extensionPackage of installedPackages) {
-		const candidate = extensionStatusIconAliasCandidate(extensionPackage.packageName, extensionPackage.source);
+		const candidate = extensionStatusIconAliasCandidate(
+			extensionPackage.packageName,
+			extensionPackage.source,
+		);
 		if (!candidate) continue;
-		const aliasesByPackage = packageAliasesByStatusBase.get(candidate.statusBase) ?? new Map<string, string[]>();
+		const aliasesByPackage =
+			packageAliasesByStatusBase.get(candidate.statusBase) ?? new Map<string, string[]>();
 		const existingAliases = aliasesByPackage.get(extensionPackage.packageName) ?? [];
-		aliasesByPackage.set(extensionPackage.packageName, uniqueStrings([...existingAliases, ...candidate.aliases]));
+		aliasesByPackage.set(
+			extensionPackage.packageName,
+			uniqueStrings([...existingAliases, ...candidate.aliases]),
+		);
 		packageAliasesByStatusBase.set(candidate.statusBase, aliasesByPackage);
 	}
 
 	const aliases = new Map<string, string[]>();
 	for (const [statusBase, aliasesByPackage] of packageAliasesByStatusBase) {
-		if (aliasesByPackage.size === 1) aliases.set(statusBase, [...aliasesByPackage.values()][0] ?? []);
+		if (aliasesByPackage.size === 1)
+			aliases.set(statusBase, [...aliasesByPackage.values()][0] ?? []);
 	}
 	return aliases;
 }

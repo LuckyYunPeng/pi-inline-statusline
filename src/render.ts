@@ -1,5 +1,4 @@
 import { basename } from "node:path";
-import process from "node:process";
 import type {
 	ExtensionAPI,
 	ExtensionContext,
@@ -18,8 +17,8 @@ import type {
 	TokyoNightBlockName,
 } from "../presets/types.js";
 import {
-	formatExtensionStatuses,
 	type ExtensionStatusRuntime,
+	formatExtensionStatuses,
 	wrapExtensionStatusline,
 } from "./extension-status.js";
 import { formatGitBranchText, type GitStatusSummary } from "./git-status.js";
