@@ -1,43 +1,69 @@
 # pi-inline-statusline
 
-A community-maintained, single-line-focused fork of [`@narumitw/pi-statusline`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-statusline), a native [Pi coding agent](https://pi.dev) extension that replaces Pi's footer with an information-rich terminal statusline.
+A responsive statusline for the [Pi coding agent](https://pi.dev) that keeps everything on one line when space allows and wraps by complete segments when it does not.
 
-The repository preserves the upstream package history and MIT license. This fork is independently maintained at [`LuckyYunPeng/pi-inline-statusline`](https://github.com/LuckyYunPeng/pi-inline-statusline).
+No half-visible segments. No silently dropped context, token, cost, or extension status. Each item moves as a whole to the next line, preserving both readability and information.
 
-Use it to monitor model selection, thinking level, git branch, working directory, active tools, context usage, token totals, estimated cost, time, and statuses from other Pi extensions.
+```text
+Wide terminal
+π • model • thinking • project • branch • tools • context • tokens • cost • time • MCP
 
-## ✨ Features
+Narrow terminal
+π • model • thinking • project • branch
+tools • context • tokens • cost • time
+MCP
+```
 
-- Replaces the default Pi footer with a compact preset-based statusline.
-- Shows model, thinking level, git branch/status, project directory, active tool, context usage, tokens, cost, and clock.
-- Displays compact statuses published through Pi's generic extension status API.
-- Owns extension status icons through optional JSON config, including per-extension icon suppression with `""`.
-- Warns when the same extension package is installed from multiple sources.
-- Uses emoji-labeled segments for readability in both classic and Tokyo Night presets.
-- Targets a strictly single-line footer with width-aware status prioritization.
-- Requires no configuration, with optional preset selection through `PI_STATUSLINE_PRESET`.
+## Why This Fork
 
-## 📦 Install
+Most statuslines either truncate the entire footer or always reserve extra lines for extension statuses. `pi-inline-statusline` uses the available terminal width instead:
 
-Install from npm after the first public release:
+- **Inline when possible**: main and extension statuses share one line when the complete result fits.
+- **Segment-aware wrapping**: a model, branch, context meter, token count, or cost meter is never split across lines.
+- **No information loss**: overflow moves to the next line instead of disappearing at the terminal edge.
+- **Width-safe output**: every rendered line stays within the terminal's visible width, including ANSI-colored text.
+- **Responsive extension statuses**: MCP and other Pi extension statuses join the last line when possible and wrap below only when necessary.
+
+## Features
+
+- Model and thinking level.
+- Current project directory and Git branch.
+- Compact Git state: ahead, behind, staged, modified, untracked, and conflicts.
+- Active or most recently completed tool.
+- Context-window usage, token totals, estimated cost, and clock.
+- Generic statuses published by other Pi extensions.
+- Configurable extension icons, including icon suppression.
+- Duplicate extension-package warnings.
+- Tokyo Night and classic visual presets.
+- Zero required configuration.
+
+## Install
+
+### npm
+
+Available after the first public release:
 
 ```bash
 pi install npm:pi-inline-statusline
 ```
 
-Install the current development version from GitHub:
+### GitHub
+
+Install the latest development version:
 
 ```bash
 pi install git:github.com/LuckyYunPeng/pi-inline-statusline
 ```
 
-Try this package locally from the repository root:
+### Local development
 
 ```bash
-pi -e .
+pi install /absolute/path/to/pi-inline-statusline
 ```
 
-## 🎨 Presets
+After editing the local source, run `/reload` inside Pi to apply the changes.
+
+## Presets
 
 `pi-inline-statusline` supports presets through the `PI_STATUSLINE_PRESET` environment variable:
 
@@ -53,7 +79,7 @@ Supported presets:
 
 Unset or invalid values fall back to `tokyo-night`. Both presets keep the same emoji-labeled information.
 
-## ⚙️ Extension status icons
+## Extension Status Icons
 
 Extension statuses use built-in icons by status key. Override or suppress them in `${PI_CODING_AGENT_DIR:-~/.pi/agent}/pi-statusline.json`:
 
@@ -85,28 +111,36 @@ Compatibility: a valid legacy `pi-statusline-settings.json` is migrated automati
 
 During the `PI_CAFFEINATE_ICON` deprecation window, a leading emoji from `pi-caffeinate` is still used when JSON does not configure `caffeinate`. JSON wins when both are set.
 
-## 👀 What it shows
+## Responsive Layout
 
-The default `tokyo-night` statusline uses a Starship-inspired `░▒▓` / `` powerline layout and includes:
+The footer is composed of independent segments:
 
-- `π` brand marker.
-- 🤖 current model.
-- 🧠 thinking level.
-- 📁 current project directory.
-- 🌿 git branch, with compact git status tokens when dirty or ahead/behind.
-- ⚙ active or last tool.
-- 🪟 context usage percentage.
-- 🔢 token totals.
-- 💸 estimated cost.
-- 🕒 clock.
+```text
+brand | model | thinking | cwd | branch | tools | context | tokens | cost | time
+```
 
-Git status tokens are hidden for clean repositories. When present, they mean `⇡` ahead, `⇣` behind, `+` staged, `~` modified/deleted in the worktree, `?` untracked, and `!` conflicts. Example: `🌿 main ⇡1 +2 ~1 ?3`.
+Segments are added from left to right. If adding the next complete segment would exceed the terminal width, that segment starts a new line. Only a single segment that is wider than the terminal by itself may be truncated.
 
-Extension statuses are appended to the main statusline when the complete line fits the terminal width. When space is insufficient, they move below the main statusline and retain width-safe wrapping without truncation.
+Extension statuses use the same available space. They are appended to the final statusline row when they fit; otherwise they begin on the following row and wrap safely when needed.
 
-`pi-inline-statusline` is extension-agnostic: it consumes Pi's generic extension status API and does not import or depend on status-producing extensions.
+The default `tokyo-night` preset renders every wrapped row as a complete, independently closed Powerline. The `classic` preset applies the same layout behavior with simple separators.
 
-Examples:
+### Git status
+
+Git status markers are hidden for clean repositories. When shown, they mean:
+
+- `⇡` ahead
+- `⇣` behind
+- `+` staged
+- `~` modified or deleted
+- `?` untracked
+- `!` conflicts
+
+Example: `🌿 main ⇡1 +2 ~1 ?3`.
+
+### Extension status examples
+
+`pi-inline-statusline` consumes Pi's generic extension status API without depending on specific status-producing extensions:
 
 - `🎯 active` for `goal: active` using the built-in `goal` icon.
 - `🔎 PR #123 checks passing` for `github-pr: PR #123 checks passing` using the built-in `github-pr` icon.
@@ -116,15 +150,7 @@ Examples:
 - `🔌 running` for an unknown extension status key with no configured icon.
 - `⚠️ dup biome-lsp` when local and npm installs register the same extension.
 
-## 🧠 Use cases
-
-- Track agent context usage during long coding sessions.
-- See which model and thinking level are active.
-- Monitor token totals and estimated cost.
-- Keep git branch and project directory visible.
-- Make Pi terminal sessions easier to scan at a glance.
-
-## 🗂️ Package layout
+## Package Layout
 
 ```txt
 pi-inline-statusline/
@@ -152,10 +178,8 @@ Only `statusline.ts` is a Pi entrypoint; the other source modules are internal. 
 }
 ```
 
-## 🔎 Keywords
+## Upstream And License
 
-Pi extension, Pi coding agent, inline statusline, single-line footer, terminal UI, AI coding agent status, token usage, context window, model status, TypeScript Pi package.
+This project is a community-maintained fork of [`@narumitw/pi-statusline`](https://github.com/narumiruna/pi-extensions/tree/main/extensions/pi-statusline). It preserves the upstream package history and is independently maintained at [`LuckyYunPeng/pi-inline-statusline`](https://github.com/LuckyYunPeng/pi-inline-statusline).
 
-## 📄 License
-
-MIT. See [`LICENSE`](./LICENSE).
+MIT licensed. See [`LICENSE`](./LICENSE).
