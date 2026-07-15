@@ -24,6 +24,7 @@ import statusline, {
 	formatGitBranchText,
 	formatGitStatusSummary,
 	formatToolActivity,
+	mergeStatuslineLines,
 	npmPackageName,
 	parseGitStatusPorcelain,
 	prLinkFromStatuses,
@@ -556,13 +557,18 @@ test("statusline render uses installed package id icon aliases from settings", a
 			},
 		);
 
-		const lines = footer.render(120);
+		const wideLines = footer.render(240);
+		const narrowLines = footer.render(30);
 		footer.dispose();
 
+		assert.equal(wideLines.length, 1, wideLines.join("\n"));
+		assert.match(wideLines[0] ?? "", /🧪 running/u);
+		assert.ok(narrowLines.length > 1, narrowLines.join("\n"));
 		assert.ok(
-			lines.some((line) => line.includes("🧪 running")),
-			lines.join("\n"),
+			narrowLines.some((line) => line.includes("🧪 running")),
+			narrowLines.join("\n"),
 		);
+		assert.ok(narrowLines.every((line) => visibleWidth(line) <= 30));
 	} finally {
 		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
 		else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
@@ -678,6 +684,20 @@ test("long extension status lines wrap to terminal width without ellipsis", () =
 	assert.ok(lines.every((line) => visibleWidth(line) <= 30));
 	assert.equal(lines.join(" ").includes("…"), false);
 	assert.match(lines.join(" "), /45 comments/);
+});
+
+test("statusline merges extension status inline when the complete line fits", () => {
+	assert.deepEqual(mergeStatuslineLines("main", ["MCP: 1/1"], 20, " • "), ["main • MCP: 1/1"]);
+	assert.deepEqual(mergeStatuslineLines("main", ["MCP: 1/1"], 15, " • "), ["main • MCP: 1/1"]);
+});
+
+test("statusline moves extension status below when the complete line does not fit", () => {
+	assert.deepEqual(mergeStatuslineLines("main", ["MCP: 1/1"], 14, " • "), ["main", "MCP: 1/1"]);
+	assert.deepEqual(mergeStatuslineLines("main", ["first", "second"], 80, " • "), [
+		"main",
+		"first",
+		"second",
+	]);
 });
 
 test("statusline compact formatting helpers", () => {

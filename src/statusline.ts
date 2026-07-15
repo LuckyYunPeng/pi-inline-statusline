@@ -6,7 +6,12 @@ import {
 	readInstalledExtensionPackages,
 } from "./extension-status.js";
 import { type GitStatusSummary, gitStatusSummaryEqual, readGitStatus } from "./git-status.js";
-import { type RuntimeState, renderExtensionStatusline, renderStatusline } from "./render.js";
+import {
+	mergeStatuslineLines,
+	type RuntimeState,
+	renderExtensionStatusline,
+	renderStatusline,
+} from "./render.js";
 import { consumeStatuslineSettingsNotice, createDefaultConfig } from "./settings.js";
 
 const STATUSLINE_KEY = "statusline";
@@ -142,9 +147,15 @@ export default function statusline(pi: ExtensionAPI) {
 				},
 				invalidate() {},
 				render(width: number): string[] {
-					const lines = [renderStatusline(width, ctx, footerData, theme, config, runtime)];
-					lines.push(...renderExtensionStatusline(width, footerData, theme, config, runtime));
-					return lines;
+					const mainLine = renderStatusline(width, ctx, footerData, theme, config, runtime);
+					const extensionLines = renderExtensionStatusline(
+						width,
+						footerData,
+						theme,
+						config,
+						runtime,
+					);
+					return mergeStatuslineLines(mainLine, extensionLines, width, theme.fg("dim", " • "));
 				},
 			};
 		});
@@ -244,6 +255,7 @@ export {
 	contextColor,
 	formatCount,
 	formatToolActivity,
+	mergeStatuslineLines,
 	prLinkFromStatuses,
 	shortenModel,
 } from "./render.js";

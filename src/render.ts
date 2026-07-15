@@ -6,7 +6,7 @@ import type {
 	Theme,
 	ThemeColor,
 } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { renderClassicStatusline } from "../presets/classic.js";
 import { renderTokyoNightStatusline } from "../presets/tokyo-night.js";
 import type {
@@ -84,6 +84,25 @@ export function renderExtensionStatusline(
 ): string[] {
 	const status = formatExtensionStatuses(footerData.getExtensionStatuses(), theme, config, runtime);
 	return wrapExtensionStatusline(status, width);
+}
+
+export function mergeStatuslineLines(
+	mainLine: string,
+	extensionLines: string[],
+	width: number,
+	separator: string,
+): string[] {
+	if (extensionLines.length === 0) return [mainLine];
+
+	if (
+		extensionLines.length === 1 &&
+		visibleWidth(mainLine) + visibleWidth(separator) + visibleWidth(extensionLines[0] ?? "") <=
+			width
+	) {
+		return [`${mainLine}${separator}${extensionLines[0]}`];
+	}
+
+	return [mainLine, ...extensionLines];
 }
 
 function buildSegment(

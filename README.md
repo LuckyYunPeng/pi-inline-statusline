@@ -102,7 +102,7 @@ The default `tokyo-night` statusline uses a Starship-inspired `░▒▓` / `
 
 Git status tokens are hidden for clean repositories. When present, they mean `⇡` ahead, `⇣` behind, `+` staged, `~` modified/deleted in the worktree, `?` untracked, and `!` conflicts. Example: `🌿 main ⇡1 +2 ~1 ?3`.
 
-The inline rendering policy is under active development and will be completed before the first npm release. The current development baseline still preserves upstream extension-status wrapping behavior.
+Extension statuses are appended to the main statusline when the complete line fits the terminal width. When space is insufficient, they move below the main statusline and retain width-safe wrapping without truncation.
 
 `pi-inline-statusline` is extension-agnostic: it consumes Pi's generic extension status API and does not import or depend on status-producing extensions.
 
