@@ -43,7 +43,7 @@ MCP
 
 ### npm
 
-首次公开版本发布后可使用：
+安装最新稳定版本：
 
 ```bash
 pi install npm:pi-inline-statusline

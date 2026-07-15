@@ -43,7 +43,7 @@ Most statuslines either truncate the entire footer or always reserve extra lines
 
 ### npm
 
-Available after the first public release:
+Install the latest stable release:
 
 ```bash
 pi install npm:pi-inline-statusline
