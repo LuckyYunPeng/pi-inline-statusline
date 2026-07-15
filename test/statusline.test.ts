@@ -34,6 +34,7 @@ import statusline, {
 	splitExtensionStatusIcon,
 	stripExtensionStatusPrefix,
 	wrapExtensionStatusline,
+	wrapStatuslineSegments,
 } from "../src/statusline.js";
 import { createMockContext, createMockPi } from "./support.js";
 
@@ -569,6 +570,9 @@ test("statusline render uses installed package id icon aliases from settings", a
 			narrowLines.join("\n"),
 		);
 		assert.ok(narrowLines.every((line) => visibleWidth(line) <= 30));
+		assert.match(narrowLines.join("\n"), /ctx \?/u);
+		assert.match(narrowLines.join("\n"), /tok 0/u);
+		assert.match(narrowLines.join("\n"), /\$0\.000/u);
 	} finally {
 		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
 		else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
@@ -686,14 +690,38 @@ test("long extension status lines wrap to terminal width without ellipsis", () =
 	assert.match(lines.join(" "), /45 comments/);
 });
 
-test("statusline merges extension status inline when the complete line fits", () => {
-	assert.deepEqual(mergeStatuslineLines("main", ["MCP: 1/1"], 20, " • "), ["main • MCP: 1/1"]);
-	assert.deepEqual(mergeStatuslineLines("main", ["MCP: 1/1"], 15, " • "), ["main • MCP: 1/1"]);
+test("statusline wraps complete segments without losing content", () => {
+	const segments = ["model", "thinking", "context", "tokens"].map((text) => ({ text })) as never;
+	const lines = wrapStatuslineSegments(segments, 16, (lineSegments) =>
+		lineSegments.map((segment) => segment.text).join(" • "),
+	);
+
+	assert.deepEqual(lines, ["model • thinking", "context • tokens"]);
+	assert.equal(lines.join(" • "), "model • thinking • context • tokens");
+});
+
+test("statusline truncates only a segment that cannot fit on its own", () => {
+	const segments = [{ text: "segment-too-wide" }, { text: "ok" }] as never;
+	const lines = wrapStatuslineSegments(segments, 8, (lineSegments) =>
+		lineSegments.map((segment) => segment.text).join(" • "),
+	);
+
+	assert.equal(lines[0]?.startsWith("segment-"), true);
+	assert.equal(visibleWidth(lines[0] ?? ""), 8);
+	assert.equal(lines[1], "ok");
+});
+
+test("statusline merges extension status into the last main line when it fits", () => {
+	assert.deepEqual(mergeStatuslineLines(["first", "main"], ["MCP: 1/1"], 20, " • "), [
+		"first",
+		"main • MCP: 1/1",
+	]);
+	assert.deepEqual(mergeStatuslineLines(["main"], ["MCP: 1/1"], 15, " • "), ["main • MCP: 1/1"]);
 });
 
 test("statusline moves extension status below when the complete line does not fit", () => {
-	assert.deepEqual(mergeStatuslineLines("main", ["MCP: 1/1"], 14, " • "), ["main", "MCP: 1/1"]);
-	assert.deepEqual(mergeStatuslineLines("main", ["first", "second"], 80, " • "), [
+	assert.deepEqual(mergeStatuslineLines(["main"], ["MCP: 1/1"], 14, " • "), ["main", "MCP: 1/1"]);
+	assert.deepEqual(mergeStatuslineLines(["main"], ["first", "second"], 80, " • "), [
 		"main",
 		"first",
 		"second",

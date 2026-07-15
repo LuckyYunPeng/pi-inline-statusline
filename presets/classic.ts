@@ -8,7 +8,15 @@ export function renderClassicStatusline(
 	theme: Theme,
 	config: StatuslineConfig,
 ): string {
-	return truncateToWidth(joinSegments(segments, theme, config), width, "");
+	return truncateToWidth(renderClassicSegments(segments, theme, config), width, "");
+}
+
+export function renderClassicSegments(
+	segments: RenderSegment[],
+	theme: Theme,
+	config: StatuslineConfig,
+): string {
+	return joinSegments(segments, theme, config);
 }
 
 export function classicExtensionSeparator(theme: Theme): string {

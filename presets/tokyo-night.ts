@@ -32,7 +32,11 @@ const TOKYO_NIGHT_BLOCK_ORDER: TokyoNightBlockName[] = [
 ];
 
 export function renderTokyoNightStatusline(width: number, segments: RenderSegment[]): string {
-	return truncateToWidth(joinTokyoNightSegments(segments), width, "");
+	return truncateToWidth(renderTokyoNightSegments(segments), width, "");
+}
+
+export function renderTokyoNightSegments(segments: RenderSegment[]): string {
+	return joinTokyoNightSegments(segments);
 }
 
 export function tokyoNightExtensionSeparator(_theme: Theme): string {

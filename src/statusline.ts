@@ -147,7 +147,7 @@ export default function statusline(pi: ExtensionAPI) {
 				},
 				invalidate() {},
 				render(width: number): string[] {
-					const mainLine = renderStatusline(width, ctx, footerData, theme, config, runtime);
+					const mainLines = renderStatusline(width, ctx, footerData, theme, config, runtime);
 					const extensionLines = renderExtensionStatusline(
 						width,
 						footerData,
@@ -155,7 +155,7 @@ export default function statusline(pi: ExtensionAPI) {
 						config,
 						runtime,
 					);
-					return mergeStatuslineLines(mainLine, extensionLines, width, theme.fg("dim", " • "));
+					return mergeStatuslineLines(mainLines, extensionLines, width, theme.fg("dim", " • "));
 				},
 			};
 		});
@@ -258,5 +258,6 @@ export {
 	mergeStatuslineLines,
 	prLinkFromStatuses,
 	shortenModel,
+	wrapStatuslineSegments,
 } from "./render.js";
 export { normalizeStatuslineSettings, readStatuslineSettings } from "./settings.js";

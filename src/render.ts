@@ -7,8 +7,8 @@ import type {
 	ThemeColor,
 } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { renderClassicStatusline } from "../presets/classic.js";
-import { renderTokyoNightStatusline } from "../presets/tokyo-night.js";
+import { renderClassicSegments } from "../presets/classic.js";
+import { renderTokyoNightSegments } from "../presets/tokyo-night.js";
 import type {
 	PaletteName,
 	RenderSegment,
@@ -56,8 +56,8 @@ export function renderStatusline(
 	theme: Theme,
 	config: StatuslineConfig,
 	runtime: RuntimeState,
-): string {
-	if (width <= 0) return "";
+): string[] {
+	if (width <= 0) return [""];
 
 	const segments = config.segments
 		.map((segment, index) => buildSegment(segment, index, ctx, footerData, config, runtime))
@@ -65,14 +65,11 @@ export function renderStatusline(
 			(segment): segment is RenderSegment => segment !== undefined && segment.text.length > 0,
 		);
 
-	if (segments.length === 0) return truncateToWidth(theme.fg("dim", "pi-statusline"), width);
+	if (segments.length === 0) return [truncateToWidth(theme.fg("dim", "pi-statusline"), width)];
 
-	switch (config.preset) {
-		case "classic":
-			return renderClassicStatusline(width, segments, theme, config);
-		case "tokyo-night":
-			return renderTokyoNightStatusline(width, segments);
-	}
+	return wrapStatuslineSegments(segments, width, (lineSegments) =>
+		renderSegments(lineSegments, theme, config),
+	);
 }
 
 export function renderExtensionStatusline(
@@ -86,23 +83,60 @@ export function renderExtensionStatusline(
 	return wrapExtensionStatusline(status, width);
 }
 
+export function wrapStatuslineSegments(
+	segments: RenderSegment[],
+	width: number,
+	render: (segments: RenderSegment[]) => string,
+): string[] {
+	if (segments.length === 0 || width <= 0) return [];
+
+	const lines: string[] = [];
+	let current: RenderSegment[] = [];
+
+	for (const segment of segments) {
+		const candidate = [...current, segment];
+		const candidateLine = render(candidate);
+		if (current.length === 0 || visibleWidth(candidateLine) <= width) {
+			current = candidate;
+			continue;
+		}
+
+		lines.push(truncateToWidth(render(current), width, ""));
+		current = [segment];
+	}
+
+	if (current.length > 0) lines.push(truncateToWidth(render(current), width, ""));
+	return lines;
+}
+
 export function mergeStatuslineLines(
-	mainLine: string,
+	mainLines: string[],
 	extensionLines: string[],
 	width: number,
 	separator: string,
 ): string[] {
-	if (extensionLines.length === 0) return [mainLine];
+	if (mainLines.length === 0) return extensionLines;
+	if (extensionLines.length === 0) return mainLines;
 
+	const lastMainLine = mainLines.at(-1) ?? "";
 	if (
 		extensionLines.length === 1 &&
-		visibleWidth(mainLine) + visibleWidth(separator) + visibleWidth(extensionLines[0] ?? "") <=
+		visibleWidth(lastMainLine) + visibleWidth(separator) + visibleWidth(extensionLines[0] ?? "") <=
 			width
 	) {
-		return [`${mainLine}${separator}${extensionLines[0]}`];
+		return [...mainLines.slice(0, -1), `${lastMainLine}${separator}${extensionLines[0]}`];
 	}
 
-	return [mainLine, ...extensionLines];
+	return [...mainLines, ...extensionLines];
+}
+
+function renderSegments(segments: RenderSegment[], theme: Theme, config: StatuslineConfig): string {
+	switch (config.preset) {
+		case "classic":
+			return renderClassicSegments(segments, theme, config);
+		case "tokyo-night":
+			return renderTokyoNightSegments(segments);
+	}
 }
 
 function buildSegment(
