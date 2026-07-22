@@ -11,7 +11,9 @@ export type SegmentName =
 	| "tokens"
 	| "cost"
 	| "time"
-	| "turn";
+	| "turn"
+	| "ttft"
+	| "speed";
 
 export type StatuslinePresetName = "classic" | "tokyo-night";
 export type TokyoNightBlockName = "header" | "directory" | "git" | "runtime" | "meter";

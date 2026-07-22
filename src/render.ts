@@ -33,6 +33,10 @@ export interface RuntimeState extends ExtensionStatusRuntime {
 	thinkingLevel: ThinkingLevel;
 	gitStatus?: GitStatusSummary;
 	requestRender?: () => void;
+	turnStartedAt?: number;
+	firstTokenAt?: number;
+	lastTtftMs?: number;
+	lastOutputTokensPerSec?: number;
 }
 interface TokenTotals {
 	input: number;
@@ -197,6 +201,14 @@ function buildSegment(
 			return segment(name, `🕒 ${formatTime()}`, color, "meter");
 		case "turn":
 			return segment(name, `🔁 #${runtime.turnCount}`, color, "meter");
+		case "ttft":
+			return runtime.lastTtftMs === undefined
+				? undefined
+				: segment(name, `⚡ TTFT ${formatDuration(runtime.lastTtftMs)}`, color, "meter");
+		case "speed":
+			return runtime.lastOutputTokensPerSec === undefined
+				? undefined
+				: segment(name, `🚀 ${runtime.lastOutputTokensPerSec.toFixed(1)}tok/s`, color, "meter");
 	}
 }
 
@@ -298,6 +310,10 @@ function formatTime(): string {
 	const hours = now.getHours().toString().padStart(2, "0");
 	const minutes = now.getMinutes().toString().padStart(2, "0");
 	return `${hours}:${minutes}`;
+}
+
+function formatDuration(ms: number): string {
+	return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
 export function shortenModel(model: string): string {

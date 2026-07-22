@@ -33,6 +33,7 @@ MCP
 - 显示精简 Git 状态：领先、落后、已暂存、已修改、未跟踪和冲突。
 - 显示正在执行或最近完成的工具。
 - 显示上下文窗口占用、Token 总量、预估费用和时间。
+- 显示最近一轮的首字时间（TTFT）与输出速度（tokens/s）。
 - 显示其他 Pi 扩展发布的通用状态。
 - 支持自定义或隐藏扩展状态图标。
 - 检测重复安装的扩展包。
@@ -109,16 +110,30 @@ PI_STATUSLINE_PRESET=classic pi
 - 字符串值会作为图标显示。
 - 空字符串表示仅显示状态文本，不显示图标。
 - 如果多个已安装包派生出同一个 key，请使用精确状态 key 消除歧义。
-- `PI_STATUSLINE_PRESET` 仍是唯一的预设配置；该 JSON 文件只控制扩展状态图标。
+- `PI_STATUSLINE_PRESET` 仍是唯一的预设配置；该 JSON 文件控制扩展状态图标和持久化的 segment 可见性。
 
 在 `PI_CAFFEINATE_ICON` 的弃用过渡期内，如果 JSON 未配置 `caffeinate`，仍会使用 `pi-caffeinate` 提供的前导 emoji。两者同时存在时 JSON 配置优先。
+
+## 切换 Segment 显示
+
+使用 `/statusline` 命令持久化显示或隐藏单个 segment：
+
+```text
+/statusline                  # 打开交互式 Toggle 选择器
+/statusline list             # 以文本查看当前显示状态
+/statusline off ttft         # 隐藏某个 segment
+/statusline on ttft          # 显示某个 segment
+/statusline reset            # 恢复默认可见集合
+```
+
+切换会立即生效并持久化到 `${PI_CODING_AGENT_DIR:-~/.pi/agent}/pi-statusline.json`，重启后仍然有效。在交互式选择器中使用上下键移动，按 Enter 或 Space 切换且光标位置保持不变，按 Esc 关闭。选择 `Reset defaults` 会删除已保存的 segment 列表并恢复包默认值。`turn` 这个 segment 存在但默认隐藏。
 
 ## 响应式布局
 
 footer 由多个独立 segment 组成：
 
 ```text
-brand | model | thinking | cwd | branch | tools | context | tokens | cost | time
+brand | model | thinking | cwd | branch | tools | context | tokens | cost | time | ttft | speed
 ```
 
 segment 会从左到右依次加入当前行。如果加入下一个完整 segment 后会超过终端宽度，该 segment 会从下一行开始。只有当单个 segment 本身就比终端更宽时，才允许截断这个 segment。

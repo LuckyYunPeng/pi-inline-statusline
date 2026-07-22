@@ -199,6 +199,190 @@ test("statusline stops git refreshes after its footer is disposed", async () => 
 	}
 });
 
+test("statusline computes TTFT and output token speed from turn events", async () => {
+	const mock = createMockPi();
+	statusline(mock.pi);
+	const context = createMockContext({ mode: "tui" });
+
+	await emit(mock.events, "session_start", {}, context.ctx);
+	const footerFactory = context.footer as (
+		tui: { requestRender(): void },
+		theme: { fg(_color: string, text: string): string; bold(text: string): string },
+		footerData: {
+			getGitBranch(): string | null;
+			getExtensionStatuses(): ReadonlyMap<string, string>;
+			onBranchChange(callback: () => void): () => void;
+		},
+	) => { dispose(): void; render(width: number): string[] };
+	const footer = footerFactory(
+		{ requestRender() {} },
+		{ fg: (_color, text) => text, bold: (text) => text },
+		{
+			getGitBranch: () => null,
+			getExtensionStatuses: () => new Map(),
+			onBranchChange: () => () => undefined,
+		},
+	);
+
+	assert.equal(footer.render(200).join(" ").includes("⚡"), false);
+	assert.equal(footer.render(200).join(" ").includes("🚀"), false);
+
+	await emit(mock.events, "turn_start", { turnIndex: 0, timestamp: Date.now() }, context.ctx);
+	await new Promise((resolve) => setTimeout(resolve, 20));
+	await emit(mock.events, "message_update", {
+		type: "message_update",
+		message: { role: "assistant" },
+		assistantMessageEvent: { type: "text_delta", contentIndex: 0, delta: "hi", partial: {} },
+	});
+	await new Promise((resolve) => setTimeout(resolve, 20));
+
+	const afterFirstToken = footer.render(200).join(" ");
+	assert.match(afterFirstToken, /⚡ TTFT \d+m?s/);
+
+	await emit(
+		mock.events,
+		"turn_end",
+		{
+			type: "turn_end",
+			turnIndex: 0,
+			message: { role: "assistant", usage: { input: 10, output: 40 } },
+			toolResults: [],
+		},
+		context.ctx,
+	);
+
+	const afterTurnEnd = footer.render(200).join(" ");
+	assert.match(afterTurnEnd, /🚀 [\d.]+tok\/s/);
+
+	footer.dispose();
+});
+
+test("/statusline command persists, lists, and resets segment visibility", async () => {
+	const root = mkdtempSync(join(tmpdir(), "pi-statusline-command-"));
+	const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+	process.env.PI_CODING_AGENT_DIR = root;
+	try {
+		writeFileSync(
+			join(root, "pi-statusline.json"),
+			JSON.stringify({ extensionStatusIcons: { goal: "🎯" }, futureOption: true }),
+		);
+		const mock = createMockPi();
+		statusline(mock.pi);
+		const context = createMockContext({ mode: "tui" });
+
+		await emit(mock.events, "session_start", {}, context.ctx);
+		const footerFactory = context.footer as (
+			tui: { requestRender(): void },
+			theme: { fg(_color: string, text: string): string; bold(text: string): string },
+			footerData: {
+				getGitBranch(): string | null;
+				getExtensionStatuses(): ReadonlyMap<string, string>;
+				onBranchChange(callback: () => void): () => void;
+			},
+		) => { dispose(): void; render(width: number): string[] };
+		const footer = footerFactory(
+			{ requestRender() {} },
+			{ fg: (_color, text) => text, bold: (text) => text },
+			{
+				getGitBranch: () => null,
+				getExtensionStatuses: () => new Map(),
+				onBranchChange: () => () => undefined,
+			},
+		);
+
+		const command = mock.commands.get("statusline");
+		assert.ok(command);
+		const notifications: string[] = [];
+		const commandCtx = {
+			...JSON.parse(JSON.stringify(context.ctx)),
+			cwd: process.cwd(),
+			hasUI: false,
+			model: undefined,
+			ui: {
+				notify: (message: string) => notifications.push(message),
+				setStatus: () => undefined,
+				setFooter: () => undefined,
+				select: async () => undefined,
+				editor: async () => undefined,
+				custom: async () => undefined,
+			},
+		} as never;
+
+		assert.match(footer.render(200).join(" "), /🕒/);
+
+		await command.handler("off time", commandCtx);
+		assert.equal(footer.render(200).join(" ").includes("🕒"), false);
+		assert.match(notifications.at(-1) ?? "", /turned off/);
+		const saved = JSON.parse(readFileSync(join(root, "pi-statusline.json"), "utf8"));
+		assert.equal(saved.segments.includes("time"), false);
+		assert.deepEqual(saved.extensionStatusIcons, { goal: "🎯" });
+		assert.equal(saved.futureOption, true);
+		assert.equal(readStatuslineSettings().segments?.includes("time"), false);
+
+		await command.handler("on time", commandCtx);
+		assert.match(footer.render(200).join(" "), /🕒/);
+
+		const selectorRenders: string[][] = [];
+		(
+			commandCtx as {
+				ui: {
+					custom(
+						factory: (
+							tui: { requestRender(): void },
+							theme: {
+								fg(color: string, text: string): string;
+								bold(text: string): string;
+							},
+							keybindings: object,
+							done: () => void,
+						) => unknown,
+					): Promise<void>;
+				};
+			}
+		).ui.custom = async (factory) => {
+			let close!: () => void;
+			const closed = new Promise<void>((resolve) => {
+				close = resolve;
+			});
+			const component = factory(
+				{ requestRender() {} },
+				{ fg: (_color: string, text: string) => text, bold: (text: string) => text },
+				{},
+				close,
+			) as { render(width: number): string[]; handleInput(data: string): void };
+			for (let index = 0; index < 9; index += 1) component.handleInput("\x1b[B");
+			selectorRenders.push(component.render(80));
+			component.handleInput("\r");
+			selectorRenders.push(component.render(80));
+			component.handleInput("\x1b");
+			await closed;
+		};
+		await command.handler("", commandCtx);
+		footer.dispose();
+		assert.equal(footer.render(200).join(" ").includes("🕒"), false);
+		assert.match(selectorRenders[0]?.join("\n") ?? "", /→ .*time.*enabled/);
+		assert.match(selectorRenders[1]?.join("\n") ?? "", /→ .*time.*disabled/);
+		assert.equal(readStatuslineSettings().segments?.includes("time"), false);
+
+		await command.handler("off bogus-segment", commandCtx);
+		assert.match(notifications.at(-1) ?? "", /Unknown segment/);
+
+		await command.handler("list", commandCtx);
+		assert.match(notifications.at(-1) ?? "", /○? time| {2}time/);
+
+		await command.handler("off time", commandCtx);
+		await command.handler("reset", commandCtx);
+		assert.match(footer.render(200).join(" "), /🕒/);
+		const reset = JSON.parse(readFileSync(join(root, "pi-statusline.json"), "utf8"));
+		assert.equal("segments" in reset, false);
+		assert.deepEqual(reset.extensionStatusIcons, { goal: "🎯" });
+	} finally {
+		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
+		rmSync(root, { recursive: true, force: true });
+	}
+});
+
 test("statusline does not render stale in-flight git status after a branch change", async () => {
 	const mock = createMockPi();
 	const firstStatus = deferred<ExecResult>();
@@ -425,6 +609,12 @@ test("statusline settings load extension icon overrides", () => {
 	);
 	assert.deepEqual(readStatuslineSettings(settingsPath), {
 		extensionStatusIcons: { goal: "", caffeinate: "☕" },
+	});
+
+	writeFileSync(settingsPath, JSON.stringify({ segments: ["speed", "bogus", "brand", "speed"] }));
+	assert.deepEqual(readStatuslineSettings(settingsPath), {
+		extensionStatusIcons: {},
+		segments: ["brand", "speed"],
 	});
 
 	writeFileSync(settingsPath, "not json");

@@ -33,6 +33,7 @@ Most statuslines either truncate the entire footer or always reserve extra lines
 - Compact Git state: ahead, behind, staged, modified, untracked, and conflicts.
 - Active or most recently completed tool.
 - Context-window usage, token totals, estimated cost, and clock.
+- Time to first token (TTFT) and output token throughput for the last turn.
 - Generic statuses published by other Pi extensions.
 - Configurable extension icons, including icon suppression.
 - Duplicate extension-package warnings.
@@ -109,16 +110,30 @@ Compatibility: a valid legacy `pi-statusline-settings.json` is migrated automati
 - String value: use that string as the icon.
 - Empty string: show the status text without an icon.
 - If multiple installed packages derive the same key, use the exact status key to disambiguate.
-- `PI_STATUSLINE_PRESET` remains the only preset setting; this JSON file only controls extension status icons.
+- `PI_STATUSLINE_PRESET` remains the only preset setting; the JSON file controls extension status icons and persisted segment visibility.
 
 During the `PI_CAFFEINATE_ICON` deprecation window, a leading emoji from `pi-caffeinate` is still used when JSON does not configure `caffeinate`. JSON wins when both are set.
+
+## Toggling Segments
+
+Use the `/statusline` command to persistently show or hide individual segments:
+
+```text
+/statusline                  # open the interactive toggle selector
+/statusline list             # show current visibility as text
+/statusline off ttft         # hide a segment
+/statusline on ttft          # show a segment
+/statusline reset            # restore the default visible set
+```
+
+Changes apply immediately and are persisted in `${PI_CODING_AGENT_DIR:-~/.pi/agent}/pi-statusline.json`, so they survive restarts. In the interactive selector, use Up/Down to move, Enter or Space to toggle without losing the cursor position, and Esc to close. Select `Reset defaults` to remove the saved segment list and restore the package defaults. `turn` is available but hidden by default.
 
 ## Responsive Layout
 
 The footer is composed of independent segments:
 
 ```text
-brand | model | thinking | cwd | branch | tools | context | tokens | cost | time
+brand | model | thinking | cwd | branch | tools | context | tokens | cost | time | ttft | speed
 ```
 
 Segments are added from left to right. If adding the next complete segment would exceed the terminal width, that segment starts a new line. Only a single segment that is wider than the terminal by itself may be truncated.

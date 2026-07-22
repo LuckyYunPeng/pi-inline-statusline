@@ -1,4 +1,5 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Container, type SettingItem, SettingsList, Text } from "@earendil-works/pi-tui";
 import {
 	buildExtensionStatusIconAliases,
 	type ExtensionStatusIconAliasMap,
@@ -12,12 +13,23 @@ import {
 	renderExtensionStatusline,
 	renderStatusline,
 } from "./render.js";
-import { consumeStatuslineSettingsNotice, createDefaultConfig } from "./settings.js";
+import {
+	consumeStatuslineSettingsNotice,
+	createDefaultConfig,
+	isSegmentName,
+	listAllSegments,
+	listDefaultSegments,
+	writeStatuslineSegments,
+} from "./settings.js";
 
 const STATUSLINE_KEY = "statusline";
 const GIT_STATUS_REFRESH_INTERVAL_MS = 30_000;
 const GIT_STATUS_EVENT_DEBOUNCE_MS = 250;
 const EMPTY_EXTENSION_STATUS_ICON_ALIASES: ExtensionStatusIconAliasMap = new Map();
+
+function formatError(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
 
 export default function statusline(pi: ExtensionAPI) {
 	const config = createDefaultConfig();
@@ -30,14 +42,170 @@ export default function statusline(pi: ExtensionAPI) {
 		extensionStatusIconAliases: EMPTY_EXTENSION_STATUS_ICON_ALIASES,
 	};
 
+	const refresh = () => runtime.requestRender?.();
+
+	const describeSegments = () =>
+		listAllSegments()
+			.map((name) => `${config.segments.includes(name) ? "\u2713" : " "} ${name}`)
+			.join("\n");
+
+	const applySegmentVisibility = (
+		name: string,
+		visible: boolean,
+		ctx: ExtensionContext,
+		notify = true,
+	): boolean => {
+		if (!isSegmentName(name)) {
+			ctx.ui.notify(
+				`Unknown segment "${name}". Run /statusline list to see all segments.`,
+				"warning",
+			);
+			return false;
+		}
+		const selected = new Set(config.segments);
+		if (visible) selected.add(name);
+		else selected.delete(name);
+		const segments = listAllSegments().filter((segment) => selected.has(segment));
+		try {
+			writeStatuslineSegments(segments);
+			config.segments = segments;
+			if (notify) ctx.ui.notify(`Segment "${name}" turned ${visible ? "on" : "off"}.`, "info");
+			refresh();
+			return true;
+		} catch (error) {
+			ctx.ui.notify(`Could not save statusline settings: ${formatError(error)}`, "error");
+			return false;
+		}
+	};
+
+	const resetSegments = (ctx: ExtensionContext, notify = true): boolean => {
+		try {
+			writeStatuslineSegments();
+			config.segments = listDefaultSegments();
+			if (notify) ctx.ui.notify("Statusline segments reset to defaults.", "info");
+			refresh();
+			return true;
+		} catch (error) {
+			ctx.ui.notify(`Could not save statusline settings: ${formatError(error)}`, "error");
+			return false;
+		}
+	};
+
+	const openSegmentSelector = async (ctx: ExtensionContext) => {
+		if (ctx.mode !== "tui") {
+			ctx.ui.notify("/statusline requires TUI mode", "error");
+			return;
+		}
+		await ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
+			const items: SettingItem[] = [
+				...listAllSegments().map((name) => ({
+					id: name,
+					label: name,
+					currentValue: config.segments.includes(name) ? "enabled" : "disabled",
+					values: ["enabled", "disabled"],
+				})),
+				{
+					id: "reset",
+					label: "Reset defaults",
+					currentValue: "",
+					values: [""],
+				},
+			];
+			const container = new Container();
+			container.addChild(new Text(theme.fg("accent", theme.bold("Statusline segments")), 1, 1));
+			const settingsList = new SettingsList(
+				items,
+				Math.min(items.length + 2, 15),
+				{
+					label: (text, selected) => (selected ? theme.fg("accent", text) : text),
+					value: (text, selected) =>
+						selected ? theme.fg("accent", text) : theme.fg("muted", text),
+					description: (text) => theme.fg("dim", text),
+					cursor: theme.fg("accent", "→ "),
+					hint: (text) => theme.fg("dim", text),
+				},
+				(id, newValue) => {
+					if (id === "reset") {
+						if (resetSegments(ctx, false)) {
+							for (const name of listAllSegments()) {
+								settingsList.updateValue(
+									name,
+									config.segments.includes(name) ? "enabled" : "disabled",
+								);
+							}
+						}
+					} else if (!applySegmentVisibility(id, newValue === "enabled", ctx, false)) {
+						settingsList.updateValue(id, newValue === "enabled" ? "disabled" : "enabled");
+					}
+					tui.requestRender();
+				},
+				() => done(undefined),
+			);
+			container.addChild(settingsList);
+			return {
+				render: (width: number) => container.render(width),
+				invalidate: () => container.invalidate(),
+				handleInput: (data: string) => {
+					settingsList.handleInput(data);
+					tui.requestRender();
+				},
+			};
+		});
+	};
+
+	pi.registerCommand("statusline", {
+		description: "Toggle statusline segments: /statusline <on|off> <segment>, list, reset",
+		handler: async (args, ctx) => {
+			const [cmd, name] = args.trim().split(/\s+/);
+
+			if (!cmd) {
+				await openSegmentSelector(ctx);
+				return;
+			}
+
+			if (cmd === "list") {
+				ctx.ui.notify(describeSegments(), "info");
+				return;
+			}
+
+			if (cmd === "reset") {
+				resetSegments(ctx);
+				return;
+			}
+
+			if (cmd === "on" || cmd === "off") {
+				if (!name) {
+					ctx.ui.notify("Usage: /statusline <on|off> <segment>", "warning");
+					return;
+				}
+				applySegmentVisibility(name, cmd === "on", ctx);
+				return;
+			}
+
+			ctx.ui.notify("Usage: /statusline [list|reset|on <segment>|off <segment>]", "warning");
+		},
+		getArgumentCompletions: (argumentPrefix: string) => {
+			const tokens = argumentPrefix.split(/\s+/);
+			if (tokens.length <= 1) {
+				const prefix = tokens[0] ?? "";
+				return ["on", "off", "list", "reset"]
+					.filter((word) => word.startsWith(prefix))
+					.map((value) => ({ value, label: value }));
+			}
+			if (tokens[0] !== "on" && tokens[0] !== "off") return null;
+			const prefix = tokens.at(-1) ?? "";
+			return listAllSegments()
+				.filter((name) => name.startsWith(prefix))
+				.map((value) => ({ value, label: value }));
+		},
+	});
+
 	let sessionGeneration = 0;
 	let gitStatusRequestId = 0;
 	let activeGitStatusTarget: { cwd: string; generation: number } | undefined;
 	let gitStatusRefreshInFlight = false;
 	let gitStatusDebounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let pendingGitStatusRefresh: { cwd: string; generation: number; requestId: number } | undefined;
-
-	const refresh = () => runtime.requestRender?.();
 
 	const setGitStatus = (summary: GitStatusSummary | undefined) => {
 		if (gitStatusSummaryEqual(runtime.gitStatus, summary)) return;
@@ -208,10 +376,35 @@ export default function statusline(pi: ExtensionAPI) {
 	pi.on("turn_start", () => {
 		runtime.turnCount += 1;
 		runtime.isStreaming = true;
+		runtime.turnStartedAt = Date.now();
+		runtime.firstTokenAt = undefined;
 		refresh();
 	});
 
-	pi.on("turn_end", (_event, ctx) => {
+	pi.on("message_update", (event) => {
+		if (runtime.firstTokenAt !== undefined || runtime.turnStartedAt === undefined) return;
+		const deltaType = event.assistantMessageEvent.type;
+		if (
+			deltaType !== "text_delta" &&
+			deltaType !== "thinking_delta" &&
+			deltaType !== "toolcall_delta"
+		)
+			return;
+		runtime.firstTokenAt = Date.now();
+		runtime.lastTtftMs = runtime.firstTokenAt - runtime.turnStartedAt;
+		refresh();
+	});
+
+	pi.on("turn_end", (event, ctx) => {
+		const message = event.message;
+		if (
+			runtime.firstTokenAt !== undefined &&
+			message.role === "assistant" &&
+			message.usage.output > 0
+		) {
+			const elapsedSec = (Date.now() - runtime.firstTokenAt) / 1000;
+			if (elapsedSec > 0) runtime.lastOutputTokensPerSec = message.usage.output / elapsedSec;
+		}
 		scheduleGitStatusRefreshForContext(ctx);
 		refresh();
 	});

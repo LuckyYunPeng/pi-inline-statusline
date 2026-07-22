@@ -1,6 +1,6 @@
 {
 	"name": "pi-inline-statusline",
-	"version": "0.16.0",
+	"version": "0.17.0",
 	"description": "A single-line statusline extension for the Pi coding agent.",
 	"type": "module",
 	"license": "MIT",
