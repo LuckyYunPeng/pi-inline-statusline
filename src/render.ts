@@ -23,7 +23,7 @@ import {
 } from "./extension-status.js";
 import { formatGitBranchText, type GitStatusSummary } from "./git-status.js";
 
-type ThinkingLevel = ReturnType<ExtensionAPI["getThinkingLevel"]>;
+type ThinkingLevel = ReturnType<ExtensionAPI["getThinkingLevel"]> | "max";
 export interface RuntimeState extends ExtensionStatusRuntime {
 	turnCount: number;
 	activeTools: Map<string, number>;
@@ -241,6 +241,8 @@ function thinkingColor(level: ThinkingLevel): ThemeColor {
 			return "thinkingHigh";
 		case "xhigh":
 			return "thinkingXhigh";
+		case "max":
+			return "thinkingMax" as ThemeColor;
 	}
 }
 
